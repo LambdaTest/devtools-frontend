@@ -789,7 +789,11 @@ export class NetworkRequest extends Common.ObjectWrapper.ObjectWrapper implement
   }
 
   setResourceType(resourceType: Common.ResourceType.ResourceType): void {
-    this.resourceTypeInternal = resourceType;
+    if (resourceType == undefined){
+      this.resourceTypeInternal = Common.ResourceType.resourceTypes.Other;
+    } else {
+      this.resourceTypeInternal = resourceType;
+    }
   }
 
   get domain(): string {
