@@ -177,6 +177,11 @@ export class SoftContextMenu {
     }
 
     const menuItemElement = document.createElement('div');
+
+    if(item.label === 'Lighthouse'){
+      menuItemElement.style.display = 'none'; // As LT-Browser doesn't support Lighthouse feature.
+    }
+
     menuItemElement.classList.add('soft-context-menu-item');
     menuItemElement.tabIndex = -1;
     ARIAUtils.markAsMenuItem(menuItemElement);
