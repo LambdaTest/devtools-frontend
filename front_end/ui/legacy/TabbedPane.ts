@@ -1082,6 +1082,11 @@ export class TabbedPaneTab {
 
   createTabElement(measuring: boolean): HTMLElement {
     const tabElement = document.createElement('div');
+
+    if(this.title === 'Lighthouse'){
+      tabElement.style.display = 'none'; // As LT-Browser doesn't support Lighthouse feature.
+    }
+
     tabElement.classList.add('tabbed-pane-header-tab');
     tabElement.id = 'tab-' + this.idInternal;
     ARIAUtils.markAsTab(tabElement);
