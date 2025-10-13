@@ -1,0 +1,71 @@
+name: DevTools Frontend CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - stage
+  pull_request:
+    branches:
+      - stage
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_VERSION: 22                     
+      S3_BUCKET: stage-falcon-component-v1   
+      AWS_REGION: us-east-1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Clone Chrome DevTools
+        run: |
+          git clone https://github.com/ChromeDevTools/devtools-frontend.git chromedev
+          cd chromedev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+        
+      - name: Build Chrome DevTools
+        run: |
+            npm install
+            npm run build
+
+      - name: Find DevTools build folder
+        id: find_frontend_dir
+        run: |
+            # Find the parent folder containing devtools_app.html
+            FRONTEND_DIR=$(find out -type f -name "devtools_app.html" -exec dirname {} \;)
+            echo "Detected frontend directory: $FRONTEND_DIR"
+            echo "FRONTEND_DIR=$FRONTEND_DIR" >> $GITHUB_ENV
+
+      - name: Print versions
+        run: |
+          node -v
+          npm -v
+
+      - name: List built files
+        run: ls -altr ${{ env.FRONTEND_DIR }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload front_end folder to S3
+        run: |
+          aws s3 sync ${{ env.FRONTEND_DIR }} s3://${{ env.S3_BUCKET }}/${{ github.ref_name }}/ \
+          --acl public-read --follow-symlinks --delete
+
+      - name: Confirm S3 upload
+        run: aws s3 ls s3://${{ env.S3_BUCKET }}/${{ env.VERSION }}/
