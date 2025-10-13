@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - stage
+      - lt-browser
   pull_request:
     branches:
-      - stage
+      - lt-browser
 
 jobs:
   build-and-deploy:
