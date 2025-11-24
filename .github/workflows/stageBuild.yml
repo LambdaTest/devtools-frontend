@@ -23,55 +23,42 @@ jobs:
 
       - name: Clone depot_tools
         run: |
-          rm -rf depot_tools
-          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-  
+            git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+    
       - name: Add depot_tools to PATH
         run: |
-          echo "${{ github.workspace }}/depot_tools" >> $GITHUB_PATH
-      - name: Clone Chrome DevTools
+            echo "${{ github.workspace }}/depot_tools" >> $GITHUB_PATH
+      - name: Fetch Chrome DevTools
         run: |
-          rm -rf chromedev
-          git clone https://github.com/ChromeDevTools/devtools-frontend.git chromedev
+            export PATH="${{ github.workspace }}/depot_tools:$PATH"
+            fetch devtools-frontend
+            cd devtools-frontend
+            gclient sync --with_branch_heads
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ github.event.inputs.NODE_VERSION }}
-
-      - name: Sync third-party dependencies
-        run: |
-          export PATH="${{ github.workspace }}/depot_tools:$PATH"
-          cd chromedev
-          gclient config https://github.com/ChromeDevTools/devtools-frontend.git
-          gclient sync --with_branch_heads
+            node-version: ${{ github.event.inputs.NODE_VERSION }}
+  
       - name: Build Chrome DevTools
         run: |
-          export PATH="/tmp/depot_tools:$PATH"
-          # Ensure ninja is in PATH
-          if [ -d "devtools-frontend/third_party/ninja" ]; then
-            export PATH="$PWD/devtools-frontend/third_party/ninja:$PATH"
-          elif [ -d "third_party/ninja" ]; then
-            export PATH="$PWD/third_party/ninja:$PATH"
-          fi
-          cd devtools-frontend || cd .
-          npm install
-          npm run build
-        working-directory: chromedev
-
+            npm install
+            npm run build
+        working-directory: devtools-frontend
+  
       - name: Find DevTools build folder
         id: find_frontend_dir
         run: |
-          FRONTEND_DIR=$(find chromedev/out -type f -name "devtools_app.html" -exec dirname {} \;)
-          if [ -z "$FRONTEND_DIR" ]; then
-            echo "Error: build folder not found!"
-            exit 1
-          fi
-          echo "Detected frontend directory: $FRONTEND_DIR"
-          echo "FRONTEND_DIR=$FRONTEND_DIR" >> $GITHUB_ENV
+            FRONTEND_DIR=$(find devtools-frontend/out -type f -name "devtools_app.html" -exec dirname {} \;)
+            if [ -z "$FRONTEND_DIR" ]; then
+              echo "Error: build folder not found!"
+              exit 1
+            fi
+            echo "Detected frontend directory: $FRONTEND_DIR"
+            echo "FRONTEND_DIR=$FRONTEND_DIR" >> $GITHUB_ENV
       - name: Print versions
         run: |
-          node -v
-          npm -v
+            node -v
+            npm -v
       - name: List built files
         run: ls -altr ${{ env.FRONTEND_DIR }}
 
