@@ -6,7 +6,6 @@ on:
       version:
         description: "Version to build (e.g. v1, v2, v3)"
         required: true
-        default: "v3"
 
 jobs:
   build-and-deploy:
@@ -22,21 +21,34 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: stage
 
-      - name: Clone Chrome DevTools
+      - name: Setup depot_tools
         run: |
-          git clone https://github.com/ChromeDevTools/devtools-frontend.git chromedev
-          cd chromedev
+          git clone --depth=1 https://chromium.googlesource.com/chromium/tools/depot_tools.git /tmp/depot_tools
+          echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
+          echo "/tmp/depot_tools" >> $GITHUB_PATH
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
         
+      - name: Sync dependencies
+        run: |
+          export PATH="/tmp/depot_tools:$PATH"
+          gclient sync
+
+      - name: Generate build files
+        run: |
+          export PATH="/tmp/depot_tools:$PATH"
+          gn gen out/Default
+
       - name: Build Chrome DevTools
         run: |
-            npm install
-            npm run build
+          export PATH="/tmp/depot_tools:$PATH"
+          npm install
+          npm run build
 
       - name: Find DevTools build folder
         id: find_frontend_dir
@@ -57,8 +69,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
             aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload front_end folder to S3
