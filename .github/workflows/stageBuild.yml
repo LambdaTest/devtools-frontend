@@ -36,16 +36,16 @@ jobs:
       - name: Create gclient config
         run: |
           cat > .gclient << 'EOF'
-            solutions = [
+          solutions = [
             {
-                "managed": False,
-                "name": "devtools-frontend",
-                "url": "https://chromium.googlesource.com/devtools/devtools-frontend.git",
-                "custom_deps": {},
-                "deps_file": "DEPS",
-                "safesync_url": "",
+              "managed": False,
+              "name": "devtools-frontend",
+              "url": "https://chromium.googlesource.com/devtools/devtools-frontend.git",
+              "custom_deps": {},
+              "deps_file": "DEPS",
+              "safesync_url": "",
             },
-            ]
+          ]
           EOF
 
       - name: Sync dependencies
