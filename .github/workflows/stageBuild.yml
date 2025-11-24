@@ -1,4 +1,4 @@
-name: DevTools Frontend CI
+name: DevTools Stage Frontend CI
 
 on:
   workflow_dispatch:
