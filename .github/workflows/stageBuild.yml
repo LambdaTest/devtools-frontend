@@ -29,6 +29,10 @@ jobs:
           echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
           echo "/tmp/depot_tools" >> $GITHUB_PATH
 
+      - name: add depot_tools path to PATH
+        run: |
+          echo "${{ github.workspace }}/depot_tools" >> $GITHUB_PATH
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -36,17 +40,13 @@ jobs:
         
       - name: Sync dependencies
         run: |
-          export PATH="/tmp/depot_tools:$PATH"
+          export PATH="${{ github.workspace }}/depot_tools:$PATH"
+          fetch devtools-frontend
+          cd devtools-frontend
           gclient sync
-
-      - name: Generate build files
-        run: |
-          export PATH="/tmp/depot_tools:$PATH"
-          gn gen out/Default
 
       - name: Build Chrome DevTools
         run: |
-          export PATH="/tmp/depot_tools:$PATH"
           npm install
           npm run build
 
