@@ -26,23 +26,39 @@ jobs:
       - name: Setup depot_tools
         run: |
           git clone --depth=1 https://chromium.googlesource.com/chromium/tools/depot_tools.git /tmp/depot_tools
-
-      - name: add depot_tools path to PATH
-        run: |
-          echo "${{ github.workspace }}/depot_tools" >> $GITHUB_PATH
+          echo "/tmp/depot_tools" >> $GITHUB_PATH
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
         
+      - name: Create gclient config
+        run: |
+          cat > .gclient << 'EOF'
+          solutions = [
+            {
+              "name": "devtools-frontend",
+              "url": "https://chromium.googlesource.com/devtools/devtools-frontend.git",
+              "managed": False,
+              "custom_deps": {},
+            }
+          ]
+          EOF
+
       - name: Sync dependencies
         run: |
-          export PATH="${{ github.workspace }}/depot_tools:$PATH"
+          export PATH="/tmp/depot_tools:$PATH"
           gclient sync
+
+      - name: Generate build files
+        run: |
+          export PATH="/tmp/depot_tools:$PATH"
+          gn gen out/Default
 
       - name: Build Chrome DevTools
         run: |
+          export PATH="/tmp/depot_tools:$PATH"
           npm install
           npm run build
 
