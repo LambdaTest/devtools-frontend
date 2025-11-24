@@ -85,12 +85,12 @@ jobs:
       - name: Upload to S3
         run: |
           BUCKET=${{ env.STAGE_BUCKET }}
-          echo "Uploading to S3 bucket: $BUCKET/${{ github.event.inputs.BUCKET_PATH }}"
-          aws s3 sync "${{ env.FRONTEND_DIR }}" s3://$BUCKET/${{ github.event.inputs.BUCKET_PATH }}/ \
+          echo "Uploading to S3 bucket: $BUCKET/${{ inputs.version }}"
+          aws s3 sync "${{ env.FRONTEND_DIR }}" s3://$BUCKET/${{ inputs.version }}/ \
             --acl public-read --follow-symlinks --delete
         
       - name: Verify S3 Upload
         run: |
           BUCKET=${{ env.STAGE_BUCKET }}
-          echo "Verifying S3 bucket: $BUCKET/${{ github.event.inputs.BUCKET_PATH }}"
-          aws s3 ls s3://$BUCKET/${{ github.event.inputs.BUCKET_PATH }}/
+          echo "Verifying S3 bucket: $BUCKET/${{ inputs.version }}"
+          aws s3 ls s3://$BUCKET/${{ inputs.version }}/
