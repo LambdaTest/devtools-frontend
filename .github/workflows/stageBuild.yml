@@ -46,6 +46,14 @@ jobs:
           gclient sync --with_branch_heads
       - name: Build Chrome DevTools
         run: |
+          export PATH="/tmp/depot_tools:$PATH"
+          # Ensure ninja is in PATH
+          if [ -d "devtools-frontend/third_party/ninja" ]; then
+            export PATH="$PWD/devtools-frontend/third_party/ninja:$PATH"
+          elif [ -d "third_party/ninja" ]; then
+            export PATH="$PWD/third_party/ninja:$PATH"
+          fi
+          cd devtools-frontend || cd .
           npm install
           npm run build
         working-directory: chromedev
