@@ -36,63 +36,53 @@ jobs:
       - name: Create gclient config
         run: |
           cat > .gclient << 'EOF'
-          solutions = [
+            solutions = [
             {
-              "name": "devtools-frontend",
-              "url": "https://chromium.googlesource.com/devtools/devtools-frontend.git",
-              "managed": False,
-              "custom_deps": {},
-            }
-          ]
+                "managed": False,
+                "name": "devtools-frontend",
+                "url": "https://chromium.googlesource.com/devtools/devtools-frontend.git",
+                "custom_deps": {},
+                "deps_file": "DEPS",
+                "safesync_url": "",
+            },
+            ]
           EOF
 
       - name: Sync dependencies
         run: |
           export PATH="/tmp/depot_tools:$PATH"
           gclient sync
-          # Verify dependencies were downloaded
-          ls -la buildtools/ || echo "Warning: buildtools not found"
-          # Check for Ninja in buildtools
-          find buildtools -name "ninja" -type f 2>/dev/null || echo "Warning: Ninja not found in buildtools"
-
-      - name: Download Ninja if not found
-        run: |
-          export PATH="/tmp/depot_tools:$PATH"
-          # Check if Ninja exists in buildtools
-          if ! find buildtools -name "ninja" -type f 2>/dev/null | grep -q .; then
-            echo "Ninja not found in buildtools, downloading via CIPD..."
-            mkdir -p third_party/ninja
-            # Download Ninja for Linux
-            cipd ensure -root third_party/ninja -ensure-file - <<EOF
-            infra/ninja/linux-amd64 git_revision:524c96c49b1e3c3c1c0c1c0c1c0c1c0c1c0c1c0c
-            EOF
-            # If CIPD command doesn't work, try alternative
-            if [ ! -f "third_party/ninja/ninja" ]; then
-              echo "Attempting to download Ninja binary directly..."
-              curl -L https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip -o /tmp/ninja.zip
-              unzip -q /tmp/ninja.zip -d third_party/ninja
-              chmod +x third_party/ninja/ninja
-            fi
-          fi
-          # Add buildtools and ninja directories to PATH
-          if [ -d "buildtools/linux64" ]; then
-            echo "$PWD/buildtools/linux64" >> $GITHUB_PATH
-          fi
-          if [ -d "buildtools" ]; then
-            echo "$PWD/buildtools" >> $GITHUB_PATH
-          fi
-          if [ -d "third_party/ninja" ]; then
+          # Add ninja to PATH (check both possible locations)
+          if [ -d "devtools-frontend/third_party/ninja" ]; then
+            export PATH="$PWD/devtools-frontend/third_party/ninja:$PATH"
+            echo "$PWD/devtools-frontend/third_party/ninja" >> $GITHUB_PATH
+          elif [ -d "third_party/ninja" ]; then
+            export PATH="$PWD/third_party/ninja:$PATH"
             echo "$PWD/third_party/ninja" >> $GITHUB_PATH
           fi
 
       - name: Generate build files
         run: |
           export PATH="/tmp/depot_tools:$PATH"
+          # Ensure ninja is in PATH
+          if [ -d "devtools-frontend/third_party/ninja" ]; then
+            export PATH="$PWD/devtools-frontend/third_party/ninja:$PATH"
+          elif [ -d "third_party/ninja" ]; then
+            export PATH="$PWD/third_party/ninja:$PATH"
+          fi
+          cd devtools-frontend || cd .
           gn gen out/Default
 
       - name: Build Chrome DevTools
         run: |
           export PATH="/tmp/depot_tools:$PATH"
+          # Ensure ninja is in PATH
+          if [ -d "devtools-frontend/third_party/ninja" ]; then
+            export PATH="$PWD/devtools-frontend/third_party/ninja:$PATH"
+          elif [ -d "third_party/ninja" ]; then
+            export PATH="$PWD/third_party/ninja:$PATH"
+          fi
+          cd devtools-frontend || cd .
           npm install
           npm run build
 
