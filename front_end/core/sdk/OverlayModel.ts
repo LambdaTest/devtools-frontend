@@ -287,26 +287,8 @@ export class OverlayModel extends SDKModel<EventTypes> implements ProtocolProxyA
       Promise<void> {
     await this.domModel.requestDocument();
     this.inspectModeEnabledInternal = mode !== Protocol.Overlay.InspectMode.None;
-    this.notifyParentWindowOfInspectModeChange();
     this.dispatchEventToListeners(Events.InspectModeWillBeToggled, this);
     this.highlighter.setInspectMode(mode, this.buildHighlightConfig('all', showDetailedTooltip));
-  }
-
-  private notifyParentWindowOfInspectModeChange(): void {
-    // If the window is not undefined and the parent is not the same as the window, send a message to the parent window.
-    try {
-      if (typeof window !== "undefined" && window.parent && window.parent !== window) {
-        window.parent.postMessage(
-          {
-            type: "inspectModeStateChanged",
-            enabled: this.inspectModeEnabledInternal,
-          },
-          "*"
-        );
-      }
-    } catch (error) {
-      console.error('Error sending inspect mode', error);
-    }
   }
 
   inspectModeEnabled(): boolean {
