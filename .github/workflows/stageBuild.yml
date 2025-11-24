@@ -26,8 +26,6 @@ jobs:
       - name: Setup depot_tools
         run: |
           git clone --depth=1 https://chromium.googlesource.com/chromium/tools/depot_tools.git /tmp/depot_tools
-          echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
-          echo "/tmp/depot_tools" >> $GITHUB_PATH
 
       - name: add depot_tools path to PATH
         run: |
@@ -41,8 +39,6 @@ jobs:
       - name: Sync dependencies
         run: |
           export PATH="${{ github.workspace }}/depot_tools:$PATH"
-          fetch devtools-frontend
-          cd devtools-frontend
           gclient sync
 
       - name: Build Chrome DevTools
