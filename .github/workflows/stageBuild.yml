@@ -16,30 +16,54 @@ jobs:
       AWS_REGION: us-east-1
 
     steps:
-      - name: Checkout repository
+      # 1) Checkout *your* devtools-frontend fork into a subfolder
+      - name: Checkout devtools-frontend fork
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          path: devtools-frontend   # important: repo lives here
 
+      # 2) Clone depot_tools
       - name: Clone depot_tools
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
+      # 3) Add depot_tools to PATH for all later steps
       - name: Add depot_tools to PATH
         run: echo "${{ github.workspace }}/depot_tools" >> $GITHUB_PATH
 
-      - name: Fetch Chrome DevTools
+      # 4) Write a .gclient that points at the existing devtools-frontend checkout
+      #    Note: managed=False means gclient uses your checkout and won't reclone it.
+      - name: Configure gclient for devtools-frontend
+        run: |
+          cat > .gclient << 'EOF'
+          solutions = [
+            {
+              "name": "devtools-frontend",
+              "url": "https://chromium.googlesource.com/devtools/devtools-frontend",
+              "deps_file": "DEPS",
+              "managed": False,
+              "custom_deps": {},
+              "custom_vars": {},
+            },
+          ]
+          EOF
+          echo "Wrote .gclient:"
+          cat .gclient
+
+      # 5) Fetch DEPS and other dependencies for your checkout
+      - name: Sync DEPS with gclient
         run: |
           set -xe
-          fetch devtools-frontend
-          cd devtools-frontend
           gclient sync --with_branch_heads
 
+      # 6) Setup Node.js (adjust version if your devtools-frontend needs a specific one)
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 14
 
+      # 7) Build Chrome DevTools from *your* fork
       - name: Build Chrome DevTools
         working-directory: devtools-frontend
         run: |
@@ -48,7 +72,8 @@ jobs:
           npm install
           npm run build
 
-      - name: Debug list devtools-frontend after build
+      # 8) Debug: see what out/ looks like
+      - name: Debug: list devtools-frontend after build
         working-directory: devtools-frontend
         run: |
           echo "Contents of devtools-frontend:"
@@ -56,12 +81,12 @@ jobs:
           echo "Contents of out (if any):"
           ls -R out || echo "No out/ directory"
 
+      # 9) Find the built DevTools frontend folder (where devtools_app.html lives)
       - name: Find DevTools build folder
         id: find_frontend_dir
         working-directory: devtools-frontend
         run: |
           set -e
-          # Look for devtools_app.html under out/, usually in out/Default/gen/...
           FRONTEND_DIR=$(find out -type f -name "devtools_app.html" -print -quit | xargs -r dirname)
 
           if [ -z "$FRONTEND_DIR" ]; then
@@ -84,6 +109,7 @@ jobs:
       - name: List built files
         run: ls -altr "${{ env.FRONTEND_DIR }}"
 
+      # 10) AWS + upload
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -97,7 +123,7 @@ jobs:
           echo "Uploading to S3 bucket: $BUCKET/${{ inputs.version }}"
           aws s3 sync "${{ env.FRONTEND_DIR }}" "s3://$BUCKET/${{ inputs.version }}/" \
             --acl public-read --follow-symlinks --delete
-
+        
       - name: Verify S3 Upload
         run: |
           BUCKET=${{ env.STAGE_BUCKET }}
